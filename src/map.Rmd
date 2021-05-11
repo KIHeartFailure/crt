@@ -1,0 +1,124 @@
+```{r map, cache=cacheon, fig.cap="GDP and % CRT in Europe (crossed bubbles are countries with < 10 patients)"}
+
+WorldData <- map_data("world")
+
+# GDP per capita
+
+gdp <- GDP.europe.Blad1 %>%
+  rename(country = ...1) %>%
+  filter(!is.na(country)) %>%
+  mutate(gdp = coalesce(euro.per.capita..eurostat., euro.per.capita..focus.economics.)) %>%
+  select(country, gdp)
+
+# CRT
+geo <- data3 %>%
+  filter(
+    data == "esc",
+    crt %in% c("CRT", "Indication"),
+    !country %in% c("Argentina", "Egypt", "Israel", "Saudi Arabia", "Uruguay")
+  ) %>%
+  group_by(country) %>%
+  count(crt, name = "n", .drop = F) %>%
+  mutate(
+    totn = sum(n),
+    totncat = if_else(totn < 10, 0, 1),
+    percent = n / totn * 100
+  ) %>%
+  ungroup() %>%
+  filter(
+    crt %in% c("CRT"), !is.nan(percent)
+  ) %>%
+  mutate(
+    percent_cat = case_when(
+      percent <= 20 ~ "0-20%",
+      percent <= 40 ~ "21-40%",
+      percent <= 60 ~ "41-60%",
+      percent <= 80 ~ "61-80%",
+      percent <= 100 ~ "81-100%",
+    )
+  )
+
+geo2 <- full_join(gdp, geo, by = "country") %>%
+  mutate(percent_cat = replace_na(percent_cat, "No data available"))
+
+quant_gdp <- quantile(as.numeric(geo2 %>% filter(percent_cat != "No data available") %>% pull(gdp)), c(.33, .66), na.rm = T)
+geo2 <- geo2 %>%
+  mutate(gdp_cat = case_when(
+    percent_cat == "No data available" ~ NA_character_,
+    gdp < quant_gdp[["33%"]] ~ "Low",
+    gdp < quant_gdp[["66%"]] ~ "Medium",
+    gdp >= quant_gdp[["66%"]] ~ "High"
+  ))
+
+geo3 <- right_join(geo2, WorldData, by = c("country" = "region"))
+
+crtblob <- geo3 %>%
+  filter(percent_cat != "No data available") %>%
+  group_by(country, percent_cat, totn) %>%
+  summarise(
+    minlong = min(long),
+    maxlong = max(long),
+    minlat = min(lat),
+    maxlat = max(lat),
+    meanlong = (minlong + maxlong) / 2,
+    meanlat = (minlat + maxlat) / 2,
+    .groups = "drop"
+  ) %>%
+  select(country, percent_cat, meanlat, meanlong, totn) %>%
+  mutate( # manual fix for countries
+    meanlong = case_when( # country_name == "Cyprus" ~ meanlong - 1,
+      country == "Italy" ~ meanlong + 1.2,
+      country == "Portugal" ~ meanlong - 0.3,
+      country == "Greece" ~ meanlong - 1.7,
+      country == "Denmark" ~ meanlong - 2.1,
+      country == "Latvia" ~ meanlong + .3,
+      country == "Turkey" ~ meanlong - 2,
+      country == "Moldova" ~ meanlong + .3,
+      country == "Austria" ~ meanlong + 1,
+      TRUE ~ meanlong
+    ),
+    meanlat = case_when(
+      country == "Austria" ~ meanlat - 0.3,
+      TRUE ~ meanlat
+    )
+  )
+
+colnames(crtblob) <- c("country", "% CRT", "lat", "long", "totn", "totncat")
+
+
+# Finally, we can plot the map.
+
+geo3 <- geo3 %>%
+  filter(long > -100, long < 100, lat > 0, lat < 100)
+# Plot the map
+ggplot() +
+  geom_polygon(
+    data = geo3, aes(
+      x = long, y = lat, group = group,
+      fill =
+        factor(gdp_cat, levels = c("Low", "Medium", "High"))
+    ),
+    colour = "black", size = 0.1
+  ) +
+  coord_map(xlim = c(-10, 35), ylim = c(35, 70)) +
+  # coord_map() +
+  scale_color_manual(values = global_kicols[3:1]) +
+  scale_fill_manual(name = "GDP per capita", values = global_kicols[3:1], na.translate = FALSE) +
+  # geom_point(data = crtblob %>% filter(totn < 10), aes(x = long, y = lat, size = `% CRT`), shape = 21, colour = "black", fill = "grey", stroke = 2) +
+  # geom_point(data = crtblob %>% filter(totn >= 10), aes(x = long, y = lat, size = `% CRT`), shape = 21, colour = "black", fill = "black", stroke = 2) +
+  geom_point(data = crtblob %>% filter(totn < 10), aes(x = long, y = lat, size = `% CRT`), shape = 10) +
+  geom_point(data = crtblob %>% filter(totn >= 10), aes(x = long, y = lat, size = `% CRT`), shape = 16) +
+  theme_minimal() +
+  theme(
+    # legend.position = "none",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    plot.margin = unit(0 * c(-1.5, -1.5, -1.5, -1.5), "lines")
+  )
+```

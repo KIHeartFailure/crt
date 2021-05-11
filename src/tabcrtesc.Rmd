@@ -1,0 +1,17 @@
+```{r tabcrtesc, cache=cacheon}
+
+tabcrtesc <- data3 %>%
+  filter(data == "esc") %>%
+  count(
+    crt, num_Crt,
+    num_CrtT, num_CrtRe
+  )
+
+colnames(tabcrtesc) <- c("CRT (indication defined from QRS ect.)", "CRT implantation", "Treatment", "Reason", "n")
+
+write.xlsx(tabcrtesc, paste0("./output/tabs/tabcrtesc_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+default_kable(tabcrtesc,
+  caption = "CRT implantation in ESC Registry"
+)
+```

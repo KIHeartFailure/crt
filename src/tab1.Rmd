@@ -1,0 +1,256 @@
+```{r tab1, cache=cacheon}
+tab1func <- function(data, title) {
+  tab1all <- print(
+    CreateTableOne(
+      vars = tabvars,
+      data = data3,
+      strata = c("crt", "data")
+    ),
+    smd = FALSE,
+    missing = FALSE,
+    printToggle = FALSE,
+    nonnormal = tabvars,
+    test = FALSE,
+    catDigits = 0,
+    contDigits = 0,
+    explain = FALSE,
+    noSpaces = TRUE
+  )
+  tab1all <- as_tibble(cbind(Variable = rownames(tab1all), tab1all)) %>%
+    select(-`Indication:crt`, -`No indication:crt`)
+
+  tab1_crt <- print(
+    CreateTableOne(
+      vars = tabvars,
+      data = data3 %>% filter(data == "crt")
+    ),
+    smd = FALSE,
+    missing = TRUE,
+    printToggle = FALSE,
+    nonnormal = tabvars,
+    test = FALSE,
+    catDigits = 0,
+    contDigits = 0,
+    explain = FALSE,
+    noSpaces = TRUE
+  )
+  tab1_crt <- as_tibble(cbind(Variable = rownames(tab1_crt), tab1_crt)) %>%
+    select(Variable, Missing)
+
+  tab1_esc <- print(
+    CreateTableOne(
+      vars = tabvars,
+      data = data3 %>% filter(data == "esc")
+    ),
+    smd = FALSE,
+    missing = TRUE,
+    printToggle = FALSE,
+    nonnormal = tabvars,
+    test = FALSE,
+    catDigits = 0,
+    contDigits = 0,
+    explain = FALSE,
+    noSpaces = TRUE
+  )
+  tab1_esc <- as_tibble(cbind(Variable = rownames(tab1_esc), tab1_esc)) %>%
+    select(Variable, Missing)
+
+  tab1_rs <- print(
+    CreateTableOne(
+      vars = tabvars,
+      data = data3 %>% filter(data == "rs")
+    ),
+    smd = FALSE,
+    missing = TRUE,
+    printToggle = FALSE,
+    nonnormal = tabvars,
+    test = FALSE,
+    catDigits = 0,
+    contDigits = 0,
+    explain = FALSE,
+    noSpaces = TRUE
+  )
+  tab1_rs <- as_tibble(cbind(Variable = rownames(tab1_rs), tab1_rs)) %>%
+    select(Variable, Missing)
+
+  # crt vs esc crt
+  tab1_crtesccrt <- print(
+    CreateTableOne(
+      vars = tabvars,
+      data = data3 %>% filter(data == "crt" | data == "esc" & crt == "CRT") %>% mutate(data = droplevels(data)),
+      strata = "data"
+    ),
+    smd = TRUE,
+    missing = FALSE,
+    printToggle = FALSE,
+    nonnormal = tabvars,
+    test = FALSE,
+    pDigits = 2,
+    explain = FALSE,
+    noSpaces = TRUE
+  )
+  tab1_crtesccrt <- as_tibble(cbind(Variable = rownames(tab1_crtesccrt), tab1_crtesccrt)) %>%
+    select(Variable, SMD)
+
+  # crt vs rs crt
+  tab1_crtrscrt <- print(
+    CreateTableOne(
+      vars = tabvars,
+      data = data3 %>% filter(data == "crt" | data == "rs" & crt == "CRT") %>% mutate(data = droplevels(data)),
+      strata = "data"
+    ),
+    smd = TRUE,
+    missing = FALSE,
+    printToggle = FALSE,
+    nonnormal = tabvars,
+    test = FALSE,
+    pDigits = 2,
+    explain = FALSE,
+    noSpaces = TRUE
+  )
+  tab1_crtrscrt <- as_tibble(cbind(Variable = rownames(tab1_crtrscrt), tab1_crtrscrt)) %>%
+    select(Variable, SMD)
+
+  # crt vs esc indication
+  tab1_crtescind <- print(
+    CreateTableOne(
+      vars = tabvars,
+      data = data3 %>% filter(data == "crt" | data == "esc" & crt == "Indication") %>% mutate(data = droplevels(data)),
+      strata = "data"
+    ),
+    smd = TRUE,
+    missing = FALSE,
+    printToggle = FALSE,
+    nonnormal = tabvars,
+    test = FALSE,
+    pDigits = 2,
+    explain = FALSE,
+    noSpaces = TRUE
+  )
+  tab1_crtescind <- as_tibble(cbind(Variable = rownames(tab1_crtescind), tab1_crtescind)) %>%
+    select(Variable, SMD)
+
+  # crt vs rs indication
+  tab1_crtrsind <- print(
+    CreateTableOne(
+      vars = tabvars,
+      data = data3 %>% filter(data == "crt" | data == "rs" & crt == "Indication") %>% mutate(data = droplevels(data)),
+      strata = "data"
+    ),
+    smd = TRUE,
+    missing = FALSE,
+    printToggle = FALSE,
+    nonnormal = tabvars,
+    test = FALSE,
+    pDigits = 2,
+    explain = FALSE,
+    noSpaces = TRUE
+  )
+  tab1_crtrsind <- as_tibble(cbind(Variable = rownames(tab1_crtrsind), tab1_crtrsind)) %>%
+    select(Variable, SMD)
+
+  tab1 <- Reduce(
+    function(...) {
+      full_join(...,
+        by = "Variable"
+      )
+    },
+    list(tab1all, tab1_crt, tab1_esc, tab1_rs, tab1_crtesccrt, tab1_crtrscrt, tab1_crtescind, tab1_crtrsind)
+  )
+
+  # incidence
+
+  incfunc <- function(event, time, eventname) {
+    ev <- data3 %>%
+      group_by(data, crt) %>%
+      summarise(
+        ev = sum(!!sym(event) == "Yes", na.rm = T),
+        .groups = "drop"
+      )
+    s <- data3 %>%
+      group_by(data, crt) %>%
+      summarise(
+        s = sum(!!sym(time) / 365.25, na.rm = T),
+        .groups = "drop"
+      )
+    r <- pois.exact(x = ev$ev[ev$data != "crt"], pt = s$s[s$data != "crt"] / 1000)
+
+    r2 <- paste0(fn(r$rate, 0), " (", fn(r$lower, 0), "-", fn(r$upper, 0), ")")
+    inc <- c(eventname, NA, r2[1:6], rep(NA, 7))
+  }
+
+  inc_death <- incfunc(event = "out_death", time = "outtime_death", eventname = "AC death")
+  inc_deathcv <- incfunc(event = "out_deathcv", time = "outtime_death", eventname = "CV death")
+  inc_hosphf <- incfunc(event = "out_hosphf", time = "outtime_hosphf", eventname = "First HF hosp")
+
+  tab1 <- rbind(tab1, inc_death, inc_deathcv, inc_hosphf)
+
+  tab1 <- tab1 %>%
+    select(
+      Variable,
+      Missing.x, `CRT:crt`,
+      Missing.y, `CRT:esc`, SMD.x, `Indication:esc`, SMD.y, `No indication:esc`,
+      Missing, `CRT:rs`, SMD.x.x, `Indication:rs`, SMD.y.y, `No indication:rs`
+    )
+
+  tab1 <- tab1 %>%
+    # remove NA
+    mutate(
+      across(everything(), str_replace_all, fixed("NA [NA, NA]"), ""),
+      across(everything(), str_replace_all, fixed("0 (NaN)"), ""),
+      across(everything(), str_replace_all, fixed("NA"), ""),
+      across(everything(), str_replace_all, fixed("NaN"), ""),
+
+      # remove = Yes
+      across(everything(), str_replace_all, fixed(" = Yes"), ""),
+
+      # so no probs
+      Variable = sanitize_text(Variable),
+      # space in Latex output (fix this other way?)
+      Variable = sub("  ", ". ", Variable),
+      # footnotes
+      Variable = if_else(str_detect(Variable, "qrs|lbbb"), paste0(Variable, footnote_marker_number(5)), Variable)
+    )
+
+  colnames(tab1) <- c(
+    "Variable",
+    sanitize_text("Missing (%)"), "CRT",
+    sanitize_text("Missing (%)"), "CRT", paste0("SMD", footnote_marker_number(1)), "Indication",
+    paste0("SMD", footnote_marker_number(2)), "No indication",
+    sanitize_text("Missing (%)"), "CRT", paste0("SMD", footnote_marker_number(3)), "Indication",
+    paste0("SMD", footnote_marker_number(4)), "No indication"
+  )
+
+  write.xlsx(tab1, paste0("./output/tabs/tab1_", title, "_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+
+  footnote(
+    default_kable(tab1,
+      font_size = 4,
+      caption = paste0("Baseline characteristics", title),
+      longtable = TRUE,
+      escape = FALSE
+    ) %>%
+      landscape() %>%
+      add_header_above(c(" " = 1, "CRT Survey II" = 2, "ESC Registry" = 6, "SwedeHF Registry" = 6)),
+    general = c(
+      "Categorical variables are presented with n (%) and continuous variables with median [q1-q3]. Incidence is presented with rate / 1000 py (95% CI)"
+    ),
+    number = c(
+      "CRT Survey II vs patients with CRT in ESC Registry",
+      "CRT Survey II vs patients with CRT in SwedeHF Registry",
+      "CRT Survey II vs patients with CRT indication in ESC Registry",
+      "CRT Survey II vs patients with CRT indication in SwedeHF Registry",
+      "Intrinsic in CRT Survey II. Including paced in ESC/SwedeHF"
+    )
+  )
+}
+```
+
+```{r tab1all, cache=cacheon, dependson="tab1"}
+tab1func(data = data3, title = "")
+```
+
+```{r tab1countryselect, cache=cacheon, dependson="tab1"}
+tab1func(data3 %>% filter(overlapping_country == "Yes"), " - only overlapping countries")
+```

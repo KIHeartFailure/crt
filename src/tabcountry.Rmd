@@ -1,0 +1,29 @@
+```{r tabcountry, cache=cacheon}
+
+tab_country <- print(
+  CreateTableOne(
+    vars = "country",
+    data = data3,
+    strata = "data"
+  ),
+  smd = FALSE,
+  missing = FALSE,
+  printToggle = FALSE,
+  test = FALSE,
+  catDigits = 0,
+  contDigits = 0,
+  explain = FALSE,
+  noSpaces = TRUE
+)
+tab_country <- as_tibble(cbind(Variable = rownames(tab_country), tab_country))
+
+colnames(tab_country) <- c("Variable", "CRT Survey II", "ESC Registry", "SwedeHF Registry")
+
+write.xlsx(tab_country, paste0("./output/tabs/tab_country_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+default_kable(tab_country,
+  scale_down = FALSE,
+  font_size = 6,
+  caption = "Countries"
+)
+```

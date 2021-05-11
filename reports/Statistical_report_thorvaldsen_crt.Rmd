@@ -1,0 +1,191 @@
+---
+title: 'Statistical report: Cardiac resynchronization therapy practice in heart failure vs. electrophysiology settings/clinics in Europe'
+subtitle: 'DRAFT'
+author: 'Statistician: Lina Benson'
+  
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 7
+    number_sections: yes
+link-citations: yes
+bibliography: references.bib
+nocite: '@*'
+header-includes:
+   - \usepackage{draftwatermark}
+---
+
+\newpage 
+\tableofcontents 
+\listoftables
+\listoffigures
+\newpage
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, include = TRUE, comment = "",
+  warning = FALSE, message = FALSE, fig.pos = "H",
+  fig.path = "../output/figs/"
+)
+options(knitr.kable.NA = "")
+```
+
+```{r adjust_directory_if_needed, include=FALSE}
+# Uncomment lines below if rmd file is placed in a subdirectory
+knitr::opts_knit$set(root.dir = normalizePath("../"))
+```
+
+```{r load_project}
+# 1. Set options in config/global.dcf
+# 2. Load packages listed in config/global.dcf
+# 3. Import functions and code in lib directory
+
+ProjectTemplate::reload.project()
+
+cacheon <- TRUE
+```             
+
+# Data handling
+
+## Data sources
+### CRT Survey II
+
+General analysis population is used.
+
+### ESC registry
+
+hf3_lt_fu_data_soladis_jan19.sas7bdat (from the folder DATABASE_ANALYZED.ZIP). 
+
+### SwedeHF registry
+
+SHFDB3, https://kiheartfailure.github.io/shfdb3/, v 3.2.3. 
+
+## Inclusion/exclusion criteria
+
+```{r flow}
+default_kable(flow, caption = "Flowchart", scale_down = F)
+```  
+
+```{r overalldescstat}
+tab1overall <- print(
+  CreateTableOne(
+    vars = c("age", "sex"),
+    data = data3,
+    strata = "data"
+  ),
+  smd = FALSE,
+  missing = FALSE,
+  printToggle = FALSE,
+  nonnormal = "age",
+  test = FALSE,
+  catDigits = 0,
+  contDigits = 0,
+  explain = TRUE,
+  noSpaces = TRUE,
+  showAllLevels = TRUE
+)
+tab1overall <- as_tibble(cbind(Variable = rownames(tab1overall), tab1overall))
+names(tab1overall) <- c("Variable", "", "CRT Survey II", "ESC Registry", "SwedeHF Registry")
+
+default_kable(tab1overall, caption = "Overall stats", scale_down = F)
+```  
+
+## Created variables 
+
+The information needed to derive the MAGGIC score was not available in all 3 registries. 
+In those cases the same assumption was made in all 3 registries, irrespectively 
+if the information was collected in order to make the 3 comparable. 
+The following assumptions were made: EF <30% gives 6 points and EF 30-39% gives 3 points. 
+All patients are considered non-smokers and all patients have been assumed to 
+have a duration of HF > 1.5 years.  
+
+# Statistical analysis 
+
+## General
+
+All analyses were performed using `r sessionInfo()$R.version$version.string` [@r]. 
+The level of significance is set to 5%, two-sided. No adjustment for multiple 
+comparisons were made and therefore the results should be viewed with some care.
+
+## Sensitivity analyses
+
+A comparison is also performed for overlapping countries between the 3 registries where 
+the countries that are in CRT Survey II and ESC Registry or SwedeHF are included. 
+The main analysis is considered to be the one with all countries. 
+
+## Baseline characteristics
+
+```{r, child = "../src/tab1.Rmd"}
+
+```
+
+```{r, child = "../src/tabcrtesc.Rmd"}
+
+```
+
+```{r, child = "../src/tabcountry.Rmd"}
+
+```
+
+\clearpage
+
+```{r, child = "../src/bar.Rmd"}
+
+```
+
+\clearpage
+
+```{r, child = "../src/map.Rmd"}
+
+```
+
+\clearpage
+
+## Predictors of CRT use
+
+### Missing data
+
+Missing data was imputed with multiple imputation (n = 10) using mice [@mice]. 
+Variables included in the model are the same as are included in the logistic regression models. 
+Imputation was done separately for the two registries.  
+
+### Assumptions
+
+Outliers were investigated with Cook's distance and multicollinearity 
+with the variance inflation factor in the full model in the overall population.
+=> No action deemed necessary. 
+
+```{r, child = "../src/predcrt.Rmd"}
+
+```
+
+\clearpage
+
+## Outcomes after CRT
+
+```{r, child = "../src/km.Rmd"}
+
+```
+
+\clearpage
+
+# Reproducibility
+
+## R session information {#sessioninfo}
+
+```{r sessinfo}
+sessionInfo()
+```
+
+## R code
+
+The R code for all data handling and statistical analyses are found: 
+https://github.com/KIHeartFailure/crt. On publication
+the repository will be made public so as to 
+link to it from the resulting article for increased transparency and code sharing.
+No data or output is stored in the repository. 
+
+# References

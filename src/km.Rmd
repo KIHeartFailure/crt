@@ -1,0 +1,126 @@
+```{r km, cache=cacheon}
+
+kmfunc <- function(time, event, eventname, yposplus = rep(0, 4), data = data3) {
+  fit <- survfit(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ crt + data")),
+    data = data %>%
+      filter(
+        data != "crt",
+        crt %in% c("CRT", "Indication")
+      )
+  )
+
+  ## logrank
+  sd_esc <- survdiff(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ crt")),
+    data = data %>%
+      filter(
+        data == "esc",
+        crt %in% c("CRT", "Indication")
+      )
+  )
+  p_esc <- fn(pchisq(sd_esc$chisq, length(sd_esc$n) - 1, lower.tail = FALSE), dig = 3, p = TRUE)
+
+  sd_rs <- survdiff(formula(paste0("Surv(", time, ",", event, "=='Yes') ~ crt")),
+    data = data %>%
+      filter(
+        data == "rs",
+        crt %in% c("CRT", "Indication")
+      )
+  )
+  p_rs <- fn(pchisq(sd_rs$chisq, length(sd_rs$n) - 1, lower.tail = FALSE), dig = 3, p = TRUE)
+
+  # c(bottom, left, top, right)
+  par(mar = c(5, 4, 4, 8.5) + 0.1)
+  plots <- plot(fit,
+    fun = "event",
+    ylab = eventname,
+    xscale = 30.5,
+    yscale = 100,
+    col = global_kicols[c(1, 1, 2, 2)],
+    lwd = 3,
+    lty = c(1, 2, 1, 2),
+    mark.time = FALSE,
+    bty = "n",
+    xlim = c(0, 30.5 * 12),
+    ylim = c(0, .5),
+    xlab = "Months",
+    axes = F,
+    xaxs = "i", yaxs = "i"
+  )
+
+  axis(2, seq(0, 1, .1), seq(0, 100, 10), las = 2)
+  axis(1, at = seq(0, 12, 1) * 30.5, seq(0, 12, 1))
+
+  ypos <- 1 - summary(fit, 30.5 * 12, extend = TRUE)$surv
+  ytext <- paste0(rep(c("CRT", "Indication"), each = 2), " in ", c("ESC", "SwedeHF"))
+
+  ylabs <- bind_cols(ypos = ypos + yposplus, ytext = ytext)
+
+  mtext(
+    side = 4,
+    line = .2,
+    at = ylabs$ypos,
+    ylabs$ytext,
+    las = 1
+  )
+
+  text(30 * 1, 0.45, paste0("Log-rank ESC p=", p_esc), pos = 4)
+  text(30 * 1, 0.42, paste0("Log-rank SwedeHF p=", p_rs), pos = 4)
+}
+```
+
+```{r kmdeath, fig.cap="1-KM All-cause mortality", cache=cacheon, dependson="km"}
+kmfunc(
+  time = "outtime_death",
+  event = "out_death",
+  eventname = "All-cause mortality (%)",
+  yposplus = c(0, 0, 0, 0) # CRT in ESC, CRT in SwedeHF, Indication in ESC, Indication in SwedeHF
+)
+```
+
+```{r kmdeathcv, fig.cap="1-KM CV mortality", cache=cacheon, dependson="km"}
+kmfunc(
+  time = "outtime_death",
+  event = "out_deathcv",
+  eventname = "CV mortality (%)",
+  yposplus = c(0, 0, 0, 0) # CRT in ESC, CRT in SwedeHF, Indication in ESC, Indication in SwedeHF
+)
+```
+
+```{r kmhosphf, fig.cap="1-KM First HF hospitalization", cache=cacheon, dependson="km"}
+kmfunc(
+  time = "outtime_hosphf",
+  event = "out_hosphf",
+  eventname = "First HF hospitalization (%)",
+  yposplus = c(0, 0, 0, 0) # CRT in ESC, CRT in SwedeHF, Indication in ESC, Indication in SwedeHF
+)
+```
+
+```{r kmdeathoverlapping, fig.cap="1-KM All-cause mortality only overlapping countries", cache=cacheon, dependson="km"}
+kmfunc(
+  time = "outtime_death",
+  event = "out_death",
+  eventname = "All-cause mortality (%)",
+  yposplus = c(0, 0, 0, 0), # CRT in ESC, CRT in SwedeHF, Indication in ESC, Indication in SwedeHF
+  data3 %>% filter(overlapping_country == "Yes")
+)
+```
+
+```{r kmdeathcvoverlapping, fig.cap="1-KM CV mortality only overlapping countries", cache=cacheon, dependson="km"}
+kmfunc(
+  time = "outtime_death",
+  event = "out_deathcv",
+  eventname = "CV mortality (%)",
+  yposplus = c(0, 0, 0, 0), # CRT in ESC, CRT in SwedeHF, Indication in ESC, Indication in SwedeHF
+  data3 %>% filter(overlapping_country == "Yes")
+)
+```
+
+```{r kmhosphfoverlapping, fig.cap="1-KM First HF hospitalization only overlapping countries", cache=cacheon, dependson="km"}
+kmfunc(
+  time = "outtime_hosphf",
+  event = "out_hosphf",
+  eventname = "First HF hospitalization (%)",
+  yposplus = c(0, 0, 0, 0), # CRT in ESC, CRT in SwedeHF, Indication in ESC, Indication in SwedeHF
+  data3 %>% filter(overlapping_country == "Yes")
+)
+```

@@ -1,0 +1,97 @@
+```{r bar, cache=cacheon}
+
+propfunc <- function(var, val = "Yes", name, data) {
+  outprop <- data %>%
+    group_by(data) %>%
+    count(!!sym(var)) %>%
+    mutate(prop = n / sum(n) * 100) %>%
+    ungroup() %>%
+    filter(!!sym(var) == val) %>%
+    select(-n, -!!sym(var), -data) %>%
+    as.data.frame()
+
+  rownames(outprop) <- levels(data3$data)
+
+  colnames(outprop) <- name
+
+  return(outprop)
+}
+
+propfunc2 <- function(data2) {
+  prop <- propfunc(var = "sex", val = "Female", name = "Female", data2)
+  prop <- cbind(
+    prop,
+    propfunc("age_cat", val = ">=75", "Age >=75yrs", data2)
+  )
+  prop <- cbind(
+    prop,
+    propfunc("mi", val = "Yes", "MI", data2)
+  )
+  prop <- cbind(
+    prop,
+    propfunc("diabetes", val = "Yes", "Diabetes", data2)
+  )
+  prop <- cbind(
+    prop,
+    propfunc("ckd", val = "Yes", "CKD", data2)
+  )
+  prop <- cbind(
+    prop,
+    propfunc("ef_cat39", val = "<30", "EF <30%", data2)
+  )
+  prop <- cbind(
+    prop,
+    propfunc("hypertension", val = "Yes", "HT", data2)
+  )
+  prop <- cbind(
+    prop,
+    propfunc("nyha_cat", val = "II", "NYHA II", data2)
+  )
+  prop <- cbind(
+    prop,
+    propfunc("rasarni", val = "Yes", "RASi/ARNi", data2)
+  )
+  prop <- cbind(
+    prop,
+    propfunc("bbl", val = "Yes", "Betablockers", data2)
+  )
+  prop <- cbind(
+    prop,
+    propfunc("mra", val = "Yes", "MRA", data2)
+  )
+}
+```
+
+```{r barcrtind, cache=cacheon, fig.cap="Key baseline parameters for patients with CRT in CRT Survey II, ESC and Swede HF. * are patients with indication for CRT", dependson="bar"}
+
+crtgroup <- propfunc2(data3 %>% filter(crt == "CRT"))
+indcrtgroup <- propfunc2(data3 %>% filter(data == "crt" | crt == "Indication"))
+
+par(mar = c(5.7, 4.1, 0.5, 0.1))
+#  bottom, left, top and right
+b <- barplot(as.matrix(crtgroup),
+  beside = T, col = global_kicols[c(6, 1, 2)], ylim = c(0, 100),
+  ylab = "Percent",
+  axes = FALSE,
+  names.arg = rep(NA, 11),
+  border = NA
+)
+axis(2, seq(0, 100, 10), las = 2)
+axis(1, b[2, ], names(crtgroup), las = 2, tick = F)
+
+# for (i in seq_along(names(crtgroup))){
+# lines(c(b[2, i] - 0.5, b[2, i] + 0.5), c(indcrtgroup["esc", i], indcrtgroup["esc", i]), lwd = 2)
+# }
+
+for (i in seq_along(names(crtgroup))) {
+  points(c(b[2, i]), indcrtgroup["esc", i], pch = 8)
+}
+
+legend(
+  x = 3, y = 90,
+  legend = c("CRT Survey II", "ESC", "SwedeHF"),
+  bty = "n",
+  fill = global_kicols[c(6, 1, 2)],
+  border = NA
+) # , cex = 0.8)
+```
