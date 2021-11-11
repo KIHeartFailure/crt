@@ -86,6 +86,9 @@ axis(1, b[2, ], names(crtgroup), las = 2, tick = F)
 for (i in seq_along(names(crtgroup))) {
   points(c(b[2, i]), indcrtgroup["esc", i], pch = 8)
 }
+for (i in seq_along(names(crtgroup))) {
+  points(c(b[3, i]), indcrtgroup["rs", i], pch = 8)
+}
 
 legend(
   x = 3, y = 90,

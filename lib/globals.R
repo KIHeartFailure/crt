@@ -3,6 +3,7 @@ select <- dplyr::select
 rename <- dplyr::rename
 filter <- dplyr::filter
 mutate <- dplyr::mutate
+recode <- dplyr::recode
 complete <- tidyr::complete
 
 # colours 

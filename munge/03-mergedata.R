@@ -154,8 +154,8 @@ data3 <- data3 %>%
     gfrescrs = coalesce(CKDEPI, shf_gfrckdepi),
     ckdescrs = case_when(
       is.na(gfrescrs) ~ NA_character_,
-      gfrescrs < 30 ~ "Yes",
-      gfrescrs >= 30 ~ "No"
+      gfrescrs < 60 ~ "Yes",
+      gfrescrs >= 60 ~ "No"
     ),
     ckd = coalesce(H_MH_CKD_YN, ckdescrs),
 
@@ -421,6 +421,12 @@ data3 <- data3 %>%
       TRUE ~ "No indication"
     ),
 
+    # ind device for smd in tab 1
+    crt_d = factor(if_else(device == "CRT-D", 1, 0), levels = 0:1, labels = c("No", "Yes")),
+    crt_p = factor(if_else(device == "CRT-P", 1, 0), levels = 0:1, labels = c("No", "Yes")),
+    pmicd = factor(if_else(device == "PM/ICD", 1, 0), levels = 0:1, labels = c("No", "Yes")),
+    nodevice = factor(if_else(device == "No", 1, 0), levels = 0:1, labels = c("No", "Yes")),
+    
     nation = str_to_title(tolower(nation)),
     country = case_when(
       data == "rs" ~ "Sweden",
