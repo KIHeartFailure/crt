@@ -540,6 +540,10 @@ data3 <- data3 %>%
     out_hosphf = coalesce(esc_out_hosphf, sos_out_hosphf),
     outtime_death = coalesce(esc_outtime_death, sos_outtime_death),
     outtime_hosphf = coalesce(esc_outtime_hosphf, sos_outtime_hosphf),
+    
+    # comp risk
+    out_deathcv_cr = create_crevent(out_deathcv, out_death),
+    out_hosphf_cr = create_crevent(out_hosphf, out_death),
 
     # MAGGIC
     ## assumption since don't have ef continous in swedehf

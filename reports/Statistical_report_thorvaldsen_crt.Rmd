@@ -166,6 +166,10 @@ with the variance inflation factor in the full model in the overall population.
 
 ## Outcomes after CRT
 
+Time to first events were presented with 1-Kaplan-Meier curves with 
+the p-value from the log-rank test for all-cause mortality 
+and cumulative incidence curves with the p-value [@cr] treating death as a competing event for other outcomes. 
+
 ```{r, child = "../src/km.Rmd"}
 
 ```

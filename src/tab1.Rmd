@@ -238,8 +238,8 @@ tab1func <- function(data, title) {
     ),
     number = c(
       "CRT Survey II vs patients with CRT in ESC Registry",
-      "CRT Survey II vs patients with CRT in SwedeHF Registry",
       "CRT Survey II vs patients with CRT indication in ESC Registry",
+      "CRT Survey II vs patients with CRT in SwedeHF Registry",
       "CRT Survey II vs patients with CRT indication in SwedeHF Registry",
       "Intrinsic in CRT Survey II. Including paced in ESC/SwedeHF"
     )
