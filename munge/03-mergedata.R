@@ -45,6 +45,18 @@ crtpatient <- crtpatient %>%
     ynfunc
   ))
 
+# add on site data for esc
+esc <- left_join(
+  esc,
+  siteesc %>% select(
+    CentreID, sqAdmin,
+    sqHFCard,
+    sqHFInMed,
+    sqHFHFunit,
+    sqHFclinic
+  ),
+  by = c("CID" = "CentreID")
+)
 
 data3 <- bind_rows(
   crtpatient %>%
@@ -98,6 +110,7 @@ data3 <- data3 %>%
     revascularisation = coalesce(H_MH_PREVASC_YN, tmp_revasc_esc, shf_revasc),
 
     shf_sos_com_hypertension = case_when(
+      data %in% c("esc", "crt") ~ NA_character_,
       shf_hypertension == "Yes" |
         sos_com_hypertension == "Yes" ~ "Yes",
       TRUE ~ "No"
@@ -105,6 +118,7 @@ data3 <- data3 %>%
     hypertension = coalesce(H_MH_HYPTEN_YN, num_dmHT, shf_sos_com_hypertension),
 
     shf_sos_com_af = case_when(
+      data %in% c("esc", "crt") ~ NA_character_,
       sos_com_af == "Yes" |
         shf_af == "Yes" |
         shf_ekg == "Atrial fibrillation" ~ "Yes",
@@ -114,6 +128,7 @@ data3 <- data3 %>%
 
     # denna måste kollas om matchar. Dessutom saknas från esc
     shf_sos_com_valvular = case_when(
+      data %in% c("esc", "crt") ~ NA_character_,
       shf_valvedisease == "Yes" |
         sos_com_valvular == "Yes" ~ "Yes",
       TRUE ~ "No"
@@ -124,6 +139,7 @@ data3 <- data3 %>%
     copd = coalesce(H_MH_OLD_YN, num_dmCopd, sos_com_copd),
 
     shf_sos_com_diabetes = case_when(
+      data %in% c("esc", "crt") ~ NA_character_,
       shf_diabetes == "Yes" |
         sos_com_diabetes == "Yes" ~ "Yes",
       TRUE ~ "No"
@@ -175,6 +191,7 @@ data3 <- data3 %>%
       TRUE ~ "No"
     ),
     shf_sos_prevhosphf1yr = case_when(
+      data %in% c("esc", "crt") ~ NA_character_,
       sos_prevhosphf <= 365 | shf_location == "In-patient" ~ "Yes",
       TRUE ~ "No"
     ),
@@ -352,27 +369,24 @@ data3 <- data3 %>%
     ),
     famtype = coalesce(tmp_num_dmhome, scb_famtype),
 
-    shf_followuplocation_cat = if_else(shf_followuplocation %in% c("Primary care", "Other"),
-      "Primary care/Other",
-      as.character(shf_followuplocation)
+    shf_followuplocation_cat = relevel(factor(
+      if_else(shf_followuplocation %in% c("Primary care", "Other"),
+        "Primary care/Other",
+        as.character(shf_followuplocation)
+      )
+    ), ref = "Primary care/Other"),
+
+    scb_education_cat = case_when(
+      is.na(scb_education) ~ NA_character_,
+      scb_education %in% c("Secondary school", "University") ~ "Secondary school/University",
+      scb_education == "Compulsory school" ~ "Compulsory school"
     ),
 
-    sjukhusstorlek_cat = factor(case_when(
-      sjukhusstorlek %in% c(0, 1, 2, 4) ~ 1,
-      sjukhusstorlek %in% c(3) ~ 2
+    hospitaltype = factor(case_when(
+      sjukhusstorlek %in% c(0, 1, 2, 4) | ADM_CTR_TYPE_UNI_YN == 0 | sqAdmin %in% c("Community or district hospital", "Private clinic") ~ 1,
+      sjukhusstorlek %in% c(3) | ADM_CTR_TYPE_UNI_YN == 1 | sqAdmin %in% c("University hospital") ~ 2
     ),
     levels = 1:2, labels = c("Other", "University Hospital")
-    ),
-
-    sjukhusstorlek = factor(sjukhusstorlek,
-      levels = 0:4,
-      labels = c(
-        "VC",
-        "Mindre sjukhus",
-        "Lanssjukhus",
-        "Universitetssjukhus",
-        "Fristaende hjartmottagning"
-      )
     ),
 
     Implanting.CRT = factor(Implanting.CRT,
@@ -380,6 +394,21 @@ data3 <- data3 %>%
       labels = c("No", "Yes")
     ),
 
+    esc_hfpatstreated = case_when(
+      sqHFCard == "2" & sqHFInMed == "" & sqHFHFunit == "" ~ "Only cardiology wards",
+      sqHFCard == "2" & sqHFInMed == "2" & sqHFHFunit == "" ~ "Cardiology & IM wards",
+      sqHFCard == "2" & sqHFInMed == "" & sqHFHFunit == "2" ~ "Cardiology & HF units",
+
+      sqHFCard == "" & sqHFInMed == "2" & sqHFHFunit == "" ~ "Only IM wards",
+      sqHFCard == "" & sqHFInMed == "2" & sqHFHFunit == "2" ~ "IM & HF units",
+
+      sqHFCard == "" & sqHFInMed == "" & sqHFHFunit == "2" ~ "Only HF units",
+
+      sqHFCard == "2" & sqHFInMed == "2" & sqHFHFunit == "2" ~ "Cardiology & IM & HF units"
+    ),
+
+    HFclinicavailablefollowup = sqAdmin, 
+    
     # device and crt
     ## esc registry PM from characteristics and crt/icd at discharge/visit
     num_Icd = coalesce(num_dcIcd, num_opIcd),
@@ -402,11 +431,9 @@ data3 <- data3 %>%
       H_PROC_DEVICE_C == "CRT-P" |
         shf_device == "CRT" |
         tmp_device2 == "CRT-P" ~ 2,
-      H_MH_PREVDEV_YN == "Yes" |
-        shf_device %in% c("Pacemaker", "ICD") |
+      shf_device %in% c("Pacemaker", "ICD") |
         tmp_device2 %in% c("PM", "ICD") ~ 3,
-      H_MH_PREVDEV_YN == "No" |
-        shf_device == "No" |
+      shf_device == "No" |
         tmp_device2 == "No" ~ 4
     ),
     levels = 1:4,
@@ -426,7 +453,7 @@ data3 <- data3 %>%
     crt_p = factor(if_else(device == "CRT-P", 1, 0), levels = 0:1, labels = c("No", "Yes")),
     pmicd = factor(if_else(device == "PM/ICD", 1, 0), levels = 0:1, labels = c("No", "Yes")),
     nodevice = factor(if_else(device == "No", 1, 0), levels = 0:1, labels = c("No", "Yes")),
-    
+
     nation = str_to_title(tolower(nation)),
     country = case_when(
       data == "rs" ~ "Sweden",
@@ -540,7 +567,7 @@ data3 <- data3 %>%
     out_hosphf = coalesce(esc_out_hosphf, sos_out_hosphf),
     outtime_death = coalesce(esc_outtime_death, sos_outtime_death),
     outtime_hosphf = coalesce(esc_outtime_hosphf, sos_outtime_hosphf),
-    
+
     # comp risk
     out_deathcv_cr = create_crevent(out_deathcv, out_death),
     out_hosphf_cr = create_crevent(out_hosphf, out_death),

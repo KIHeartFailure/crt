@@ -58,18 +58,19 @@ tabvars <- c(
   "smoking_cat",
   "location",
   "famtype",
+  "hospitaltype",
+  "Implanting.CRT",
+  "HFclinicavailablefollowup", 
+  "esc_hfpatstreated",
 
   # "country",
   # "num_dmEthnic",
   # "scb_countryofbirth", denna gör så tab1 strular me merge
   "scb_dispincome_cat2",
-  "scb_education",
+  "scb_education_cat",
   "scb_child",
   "shf_followuphfunit",
   "shf_followuplocation",
-  "sjukhusstorlek",
-  "sjukhusstorlek_cat",
-  "Implanting.CRT",
 
   "maggic_score"
 )
@@ -100,7 +101,7 @@ modvars_esc <- c(
 
   "bpsys_cat",
   "heartrate_cat",
-  "ecg"
+  "hospitaltype"
 )
 
 modvars_rs <- c(
@@ -109,7 +110,7 @@ modvars_rs <- c(
 
   "famtype",
   "scb_child",
-  "scb_education",
+  "scb_education_cat",
   "scb_dispincome_cat2",
   "smoking_cat",
   "bmi_cat",
@@ -138,10 +139,9 @@ modvars_rs <- c(
 
   "bpsys_cat",
   "heartrate_cat",
-  "ecg",
 
   "shf_followuphfunit",
   "shf_followuplocation_cat",
-  "sjukhusstorlek_cat",
+  "hospitaltype",
   "Implanting.CRT"
 )

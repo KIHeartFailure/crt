@@ -3,7 +3,7 @@ tab1func <- function(data, title) {
   tab1all <- print(
     CreateTableOne(
       vars = tabvars,
-      data = data3,
+      data = data,
       strata = c("crt", "data")
     ),
     smd = FALSE,
@@ -22,7 +22,7 @@ tab1func <- function(data, title) {
   tab1_crt <- print(
     CreateTableOne(
       vars = tabvars,
-      data = data3 %>% filter(data == "crt")
+      data = data %>% filter(data == "crt")
     ),
     smd = FALSE,
     missing = TRUE,
@@ -40,7 +40,7 @@ tab1func <- function(data, title) {
   tab1_esc <- print(
     CreateTableOne(
       vars = tabvars,
-      data = data3 %>% filter(data == "esc")
+      data = data %>% filter(data == "esc")
     ),
     smd = FALSE,
     missing = TRUE,
@@ -58,7 +58,7 @@ tab1func <- function(data, title) {
   tab1_rs <- print(
     CreateTableOne(
       vars = tabvars,
-      data = data3 %>% filter(data == "rs")
+      data = data %>% filter(data == "rs")
     ),
     smd = FALSE,
     missing = TRUE,
@@ -77,7 +77,7 @@ tab1func <- function(data, title) {
   tab1_crtesccrt <- print(
     CreateTableOne(
       vars = tabvars,
-      data = data3 %>% filter(data == "crt" | data == "esc" & crt == "CRT") %>% mutate(data = droplevels(data)),
+      data = data %>% filter(data == "crt" | data == "esc" & crt == "CRT") %>% mutate(data = droplevels(data)),
       strata = "data"
     ),
     smd = TRUE,
@@ -96,7 +96,7 @@ tab1func <- function(data, title) {
   tab1_crtrscrt <- print(
     CreateTableOne(
       vars = tabvars,
-      data = data3 %>% filter(data == "crt" | data == "rs" & crt == "CRT") %>% mutate(data = droplevels(data)),
+      data = data %>% filter(data == "crt" | data == "rs" & crt == "CRT") %>% mutate(data = droplevels(data)),
       strata = "data"
     ),
     smd = TRUE,
@@ -115,7 +115,7 @@ tab1func <- function(data, title) {
   tab1_crtescind <- print(
     CreateTableOne(
       vars = tabvars,
-      data = data3 %>% filter(data == "crt" | data == "esc" & crt == "Indication") %>% mutate(data = droplevels(data)),
+      data = data %>% filter(data == "crt" | data == "esc" & crt == "Indication") %>% mutate(data = droplevels(data)),
       strata = "data"
     ),
     smd = TRUE,
@@ -134,7 +134,7 @@ tab1func <- function(data, title) {
   tab1_crtrsind <- print(
     CreateTableOne(
       vars = tabvars,
-      data = data3 %>% filter(data == "crt" | data == "rs" & crt == "Indication") %>% mutate(data = droplevels(data)),
+      data = data %>% filter(data == "crt" | data == "rs" & crt == "Indication") %>% mutate(data = droplevels(data)),
       strata = "data"
     ),
     smd = TRUE,
@@ -155,19 +155,19 @@ tab1func <- function(data, title) {
         by = "Variable"
       )
     },
-    list(tab1all, tab1_crt, tab1_esc, tab1_rs, tab1_crtesccrt, tab1_crtrscrt, tab1_crtescind, tab1_crtrsind)
+    list(tab1all, tab1_crt, tab1_esc, tab1_rs, tab1_crtesccrt, tab1_crtescind, tab1_crtrscrt, tab1_crtrsind)
   )
 
   # incidence
 
   incfunc <- function(event, time, eventname) {
-    ev <- data3 %>%
+    ev <- data %>%
       group_by(data, crt) %>%
       summarise(
         ev = sum(!!sym(event) == "Yes", na.rm = T),
         .groups = "drop"
       )
-    s <- data3 %>%
+    s <- data %>%
       group_by(data, crt) %>%
       summarise(
         s = sum(!!sym(time) / 365.25, na.rm = T),
@@ -222,7 +222,6 @@ tab1func <- function(data, title) {
   )
 
   write.xlsx(tab1, paste0("./output/tabs/tab1_", title, "_", Sys.Date(), ".xlsx"), rowNames = FALSE)
-
 
   footnote(
     default_kable(tab1,

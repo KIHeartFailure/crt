@@ -46,9 +46,19 @@ esc <- esc %>%
   mutate(across(where(is.factor), factor)) %>% ## Something odd with num_opRyth (two diff kinds of NA). This fixes it
   mutate(num_dmHepa = recode(num_dmHepa, "A" = "Yes", .default = levels(num_dmHepa))) # uses format for other hep variable. this fixes it
 
+# site data for esc
+siteesc <- read_sas(
+  paste0(pathesc, "/HFLT_site_quest/site_quest.sas7bdat"),
+  paste0(pathesc, "/HFLT_site_quest/formats.sas7bcat")
+)
+
+siteesc <- siteesc %>%
+  mutate(across(where(is.labelled), haven::as_factor)) %>%
+  mutate(across(where(is.factor), ~ droplevels(., exclude = c("Unknown", "Unavailable", "@", ""))))
+
 # Store as RData in /data folder ------------------------------------------
 
-save(file = "./data/esc.RData", list = c("esc"))
+save(file = "./data/esc.RData", list = c("esc", "siteesc"))
 
 # UCR data for centre -----------------------------------------------------
 
