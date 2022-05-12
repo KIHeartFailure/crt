@@ -7,7 +7,6 @@ tabvars <- c(
   "revascularisation",
   "hypertension",
   "af",
-  "valvular",
   "copd",
   "diabetes",
   "anemia",
@@ -15,9 +14,9 @@ tabvars <- c(
   "cancer",
   "hfhosp1yr",
   "device",
-  "crt_d", 
-  "crt_p", 
-  "pmicd", 
+  "crt_d",
+  "crt_p",
+  "pmicd",
   "nodevice",
   "nyha",
   "nyha_cat",
@@ -31,6 +30,7 @@ tabvars <- c(
   "ntprobnp_cat",
 
   "creatinine",
+  "gfrckdepi2021",
   "heartrate",
   "heartrate_cat",
   "hb",
@@ -60,7 +60,7 @@ tabvars <- c(
   "famtype",
   "hospitaltype",
   "Implanting.CRT",
-  "HFclinicavailablefollowup", 
+  "HFclinicavailablefollowup",
   "esc_hfpatstreated",
 
   # "country",
@@ -74,7 +74,6 @@ tabvars <- c(
 
   "maggic_score"
 )
-
 
 modvars_esc <- c(
   "age_cat",

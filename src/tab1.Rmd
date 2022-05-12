@@ -246,10 +246,138 @@ tab1func <- function(data, title) {
 }
 ```
 
+```{r tab1qrs, cache=cacheon}
+tab1qrsfunc <- function(data, title) {
+  tab1all <- print(
+    CreateTableOne(
+      vars = c("lbbb", "qrs", "qrs_cat"),
+      data = data %>% filter(device == "No" | data == "crt"),
+      strata = c("crt", "data")
+    ),
+    smd = FALSE,
+    missing = FALSE,
+    printToggle = FALSE,
+    nonnormal = tabvars,
+    test = FALSE,
+    catDigits = 0,
+    contDigits = 0,
+    explain = FALSE,
+    noSpaces = TRUE
+  )
+  tab1all <- as_tibble(cbind(Variable = rownames(tab1all), tab1all)) %>%
+    select(-`Indication:crt`, -`No indication:crt`, -`CRT:esc`, -`CRT:rs`)
+
+  # crt vs esc indication
+  tab1_crtescind <- print(
+    CreateTableOne(
+      vars = c("lbbb", "qrs", "qrs_cat"),
+      data = data %>% filter(data == "crt" | (device == "No" & data == "esc" & crt == "Indication")) %>% mutate(data = droplevels(data)),
+      strata = "data"
+    ),
+    smd = TRUE,
+    missing = FALSE,
+    printToggle = FALSE,
+    nonnormal = tabvars,
+    test = FALSE,
+    pDigits = 2,
+    explain = FALSE,
+    noSpaces = TRUE
+  )
+  tab1_crtescind <- as_tibble(cbind(Variable = rownames(tab1_crtescind), tab1_crtescind)) %>%
+    select(Variable, SMD)
+
+  # crt vs rs indication
+  tab1_crtrsind <- print(
+    CreateTableOne(
+      vars = c("lbbb", "qrs", "qrs_cat"),
+      data = data %>% filter(data == "crt" | (device == "No" & data == "rs" & crt == "Indication")) %>% mutate(data = droplevels(data)),
+      strata = "data"
+    ),
+    smd = TRUE,
+    missing = FALSE,
+    printToggle = FALSE,
+    nonnormal = tabvars,
+    test = FALSE,
+    pDigits = 2,
+    explain = FALSE,
+    noSpaces = TRUE
+  )
+  tab1_crtrsind <- as_tibble(cbind(Variable = rownames(tab1_crtrsind), tab1_crtrsind)) %>%
+    select(Variable, SMD)
+
+  tab1 <- Reduce(
+    function(...) {
+      full_join(...,
+        by = "Variable"
+      )
+    },
+    list(tab1all, tab1_crtescind, tab1_crtrsind)
+  )
+
+  tab1 <- tab1 %>%
+    select(
+      Variable,
+      `CRT:crt`, `Indication:esc`, SMD.x, `No indication:esc`, `Indication:rs`,  SMD.y, `No indication:rs`
+    )
+
+  tab1 <- tab1 %>%
+    # remove NA
+    mutate(
+      across(everything(), str_replace_all, fixed("NA [NA, NA]"), ""),
+      across(everything(), str_replace_all, fixed("0 (NaN)"), ""),
+      across(everything(), str_replace_all, fixed("NA"), ""),
+      across(everything(), str_replace_all, fixed("NaN"), ""),
+
+      # remove = Yes
+      across(everything(), str_replace_all, fixed(" = Yes"), ""),
+
+      # so no probs
+      Variable = sanitize_text(Variable),
+      # space in Latex output (fix this other way?)
+      Variable = sub("  ", ". ", Variable)
+    )
+
+  colnames(tab1) <- c(
+    "Variable",
+    "CRT",
+    "Indication", paste0("SMD", footnote_marker_number(1)), "No indication",
+    "Indication", paste0("SMD", footnote_marker_number(2)), "No indication"
+  )
+
+  write.xlsx(tab1, paste0("./output/tabs/tab1_qrsnodevice_", title, "_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+  footnote(
+    default_kable(tab1,
+      font_size = 4,
+      caption = paste0("Baseline characteristics - patients without device in ESC and SwedeHF", title),
+      longtable = TRUE,
+      escape = FALSE
+    ) %>%
+      landscape() %>%
+      add_header_above(c(" " = 1, "CRT Survey II" = 1, "ESC Registry" = 3, "SwedeHF Registry" = 3)),
+    general = c(
+      "Categorical variables are presented with n (%) and continuous variables with median [q1-q3]"
+    ),
+    number = c(
+      "CRT Survey II vs patients with CRT indication in ESC Registry",
+      "CRT Survey II vs patients with CRT indication in SwedeHF Registry"
+    )
+  )
+}
+```
+
 ```{r tab1all, cache=cacheon, dependson="tab1"}
 tab1func(data = data3, title = "")
 ```
 
+```{r tab1allqrs, cache=cacheon, dependson="tab1qrs"}
+tab1qrsfunc(data = data3, title = "")
+```
+
 ```{r tab1countryselect, cache=cacheon, dependson="tab1"}
 tab1func(data3 %>% filter(overlapping_country == "Yes"), " - only overlapping countries")
+```
+
+```{r tab1allqrscountryselect, cache=cacheon, dependson="tab1qrs"}
+tab1qrsfunc(data = data3 %>% filter(overlapping_country == "Yes"), " - only overlapping countries")
 ```

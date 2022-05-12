@@ -77,6 +77,7 @@ data3 <- bind_rows(
 data3 <- data3 %>%
   mutate(
     lopnr = coalesce(tmp_lopnr_crt, tmp_lopnr_esc, LopNr),
+    data = data,
 
     tmp_hfduresc = case_when(
       num_dmMonth %in% c("6 - 12 months", "> 12 months") ~ ">6mo",
@@ -126,16 +127,6 @@ data3 <- data3 %>%
     ),
     af = coalesce(H_MH_AF_YN, num_dmAfib_c1, shf_sos_com_af),
 
-    # denna måste kollas om matchar. Dessutom saknas från esc
-    shf_sos_com_valvular = case_when(
-      data %in% c("esc", "crt") ~ NA_character_,
-      shf_valvedisease == "Yes" |
-        sos_com_valvular == "Yes" ~ "Yes",
-      TRUE ~ "No"
-    ),
-
-    valvular = coalesce(H_MH_VHD_YN, shf_sos_com_valvular),
-
     copd = coalesce(H_MH_OLD_YN, num_dmCopd, sos_com_copd),
 
     shf_sos_com_diabetes = case_when(
@@ -147,39 +138,8 @@ data3 <- data3 %>%
 
     diabetes = coalesce(H_MH_DIAB_YN, num_dmDiab_c1, shf_sos_com_diabetes),
 
-    num_Hb = coalesce(num_dcHb, num_opHb),
-    hb = coalesce(H_LAB_HB_GDL_X_CORR * 10, num_Hb * 10, shf_hb),
-
-    anemia = case_when(
-      is.na(hb) | is.na(sex) ~ NA_character_,
-      hb < 120 & sex == "Female" | hb < 130 & sex == "Male" ~ "Yes",
-      TRUE ~ "No"
-    ),
-
-    # 1 Milligram/deciliter = 88.42 Micromole/liter
-    # eGFR according to CKD-EPI
-    num_Cre = coalesce(num_dcCre, num_opCre) * 88.42,
-    tmp_sex = recode(num_dmgender, "Male" = 1, "Female" = 0),
-    ethnicity = case_when(
-      is.na(num_dmEthnic) ~ NA_real_,
-      num_dmEthnic == "Black" ~ 1,
-      TRUE ~ 0
-    ),
-    CKDEPI = nephro::CKDEpi.creat(num_Cre / 88.42, tmp_sex, num_age, ethnicity),
-
-    gfrescrs = coalesce(CKDEPI, shf_gfrckdepi),
-    ckdescrs = case_when(
-      is.na(gfrescrs) ~ NA_character_,
-      gfrescrs < 60 ~ "Yes",
-      gfrescrs >= 60 ~ "No"
-    ),
-    ckd = coalesce(H_MH_CKD_YN, ckdescrs),
-
     cancer = coalesce(num_dmDis, sos_com_cancer3y),
 
-    ## previous device få ihop
-
-    # vars not in crt survey
     tmp_num_dmPtype = recode(num_dmPtype, Outpatient = "Out-patient", Hospital = "In-patient"),
     location = coalesce(tmp_num_dmPtype, shf_location),
     diffhfhosp = num_dmVisitdt - num_dmhdt,
@@ -211,7 +171,7 @@ data3 <- data3 %>%
     nyha = coalesce(H_BASE_NYHA_C, num_Nyha, shf_nyha),
     nyha_cat = case_when(
       is.na(nyha) ~ NA_character_,
-      nyha == "II" ~ "II",
+      nyha %in% c("II", "I") ~ "I-II",
       nyha %in% c("III", "IV") ~ "III-IV",
     ),
 
@@ -240,13 +200,35 @@ data3 <- data3 %>%
       ntprobnp > 1500 ~ ">1500"
     ),
 
+    # 1 Milligram/deciliter = 88.42 Micromole/liter
+    # eGFR according to CKD-EPI
+    num_Cre = coalesce(num_dcCre, num_opCre) * 88.42,
     creatinine = coalesce(H_LAB_SC_MOLL_CAL_X, num_Cre, shf_creatinine),
+    # eGFR according to CKD-EPI 2021 https://www.nejm.org/doi/full/10.1056/NEJMoa2102953
+    tmp_k = if_else(sex == "Female", 0.7, 0.9),
+    tmp_a = if_else(sex == "Female", -0.241, -0.302),
+    tmp_add = if_else(sex == "Female", 1.012, 1),
+    gfrckdepi2021 = 142 * pmin(creatinine / 88.4 / tmp_k, 1)^tmp_a * pmax(creatinine / 88.4 / tmp_k, 1)^-1.200 * 0.9938^age * tmp_add,
+
+    ckd = case_when(
+      is.na(gfrckdepi2021) ~ NA_character_,
+      gfrckdepi2021 < 60 ~ "Yes",
+      gfrckdepi2021 >= 60 ~ "No"
+    ),
 
     num_Hr2 = coalesce(num_dcHr2, num_opHr2),
     heartrate = coalesce(H_ECG_HR_BPM, num_Hr2, shf_heartrate),
     heartrate_cat = case_when(
       heartrate <= 70 ~ "<=70",
       heartrate > 70 ~ ">70"
+    ),
+
+    num_Hb = coalesce(num_dcHb, num_opHb),
+    hb = coalesce(H_LAB_HB_GDL_X_CORR * 10, num_Hb * 10, shf_hb),
+    anemia = case_when(
+      is.na(hb) | is.na(sex) ~ NA_character_,
+      hb < 120 & sex == "Female" | hb < 130 & sex == "Male" ~ "Yes",
+      TRUE ~ "No"
     ),
 
     num_Ryth = coalesce(num_dcRyth, num_opRyth),
@@ -257,10 +239,6 @@ data3 <- data3 %>%
       tmp_ecg %in% c("Atrial paced", "Other", "PM/Other") ~ "PM/Other",
       TRUE ~ NA_character_
     ),
-
-    # finns i esc/rs? strunta i dessa
-    # printernval = H_ECG_PRINT_MS,
-    # avblock = H_ECG_AVBLOCK_YN,
 
     # pacemaker dependent
 
@@ -279,7 +257,7 @@ data3 <- data3 %>%
       qrs >= 180 ~ 5
     ),
     levels = 1:5,
-    labels = c("<120", "120-129", "130-149", "150-179", ">180")
+    labels = c("<120", "120-129", "130-149", "150-179", ">=180")
     ),
 
     num_Ef = coalesce(num_dcEf, num_opEf),
@@ -407,8 +385,8 @@ data3 <- data3 %>%
       sqHFCard == "2" & sqHFInMed == "2" & sqHFHFunit == "2" ~ "Cardiology & IM & HF units"
     ),
 
-    HFclinicavailablefollowup = sqAdmin, 
-    
+    HFclinicavailablefollowup = sqAdmin,
+
     # device and crt
     ## esc registry PM from characteristics and crt/icd at discharge/visit
     num_Icd = coalesce(num_dcIcd, num_opIcd),
@@ -440,10 +418,15 @@ data3 <- data3 %>%
     labels = c("CRT-D", "CRT-P", "PM/ICD", "No")
     ),
 
+    # EF <=35%,
+    # NYHA II–IV, and
+    # QRS> =120 ms,
+    # where NYHA II also requires sinus rhythm and QRS 120–150 ms also requires LBBB
+
     crt = case_when(
       data == "crt" |
         device %in% c("CRT-D", "CRT-P") ~ "CRT",
-      ((qrs > 149 | lbbb == "Yes") | (qrs >= 120 & lbbb == "Yes")) &
+      (qrs > 150 | (qrs >= 120 & lbbb == "Yes")) &
         (nyha %in% c("III", "IV") | nyha == "II" & ecg == "Sinus") ~ "Indication",
       TRUE ~ "No indication"
     ),
@@ -518,10 +501,9 @@ data3 <- data3 %>%
     sos_out_death = if_else(sos_outtime_death <= 365, as.character(sos_out_death), "No"),
     sos_out_deathcv = if_else(sos_outtime_death <= 365, as.character(sos_out_deathcv), "No"),
     sos_out_hosphf = if_else(sos_outtime_hosphf <= 365, as.character(sos_out_hosphf), "No"),
-
     sos_outtime_death = if_else(sos_outtime_death <= 365, sos_outtime_death, 365),
     sos_outtime_hosphf = if_else(sos_outtime_hosphf <= 365, sos_outtime_hosphf, 365),
-
+    
     # esc
     enddtm = coalesce(num_f1DeathDt, num_f1contDt),
     startdtm = coalesce(num_dcDischdt, num_dmVisitdt),
@@ -573,7 +555,7 @@ data3 <- data3 %>%
     out_hosphf_cr = create_crevent(out_hosphf, out_death),
 
     # MAGGIC
-    ## assumption since don't have ef continous in swedehf
+    ## assumption since don't have ef continuous in swedehf
     maggic_ef = case_when(
       ef_cat39 == "<30" ~ 6,
       ef_cat39 == "30-39" ~ 3

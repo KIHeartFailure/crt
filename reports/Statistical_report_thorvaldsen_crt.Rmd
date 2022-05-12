@@ -1,6 +1,5 @@
 ---
 title: 'Statistical report: Cardiac resynchronization therapy practice in heart failure vs. electrophysiology settings/clinics in Europe'
-subtitle: 'DRAFT'
 author: 'Statistician: Lina Benson'
   
 date: "`r Sys.Date()`"
@@ -13,8 +12,6 @@ output:
 link-citations: yes
 bibliography: references.bib
 nocite: '@*'
-header-includes:
-   - \usepackage{draftwatermark}
 ---
 
 \newpage 
@@ -84,11 +81,10 @@ tab1overall <- print(
   catDigits = 0,
   contDigits = 0,
   explain = TRUE,
-  noSpaces = TRUE,
-  showAllLevels = TRUE
+  noSpaces = TRUE
 )
 tab1overall <- as_tibble(cbind(Variable = rownames(tab1overall), tab1overall))
-names(tab1overall) <- c("Variable", "", "CRT Survey II", "ESC Registry", "SwedeHF Registry")
+names(tab1overall) <- c("Variable", "CRT Survey II", "ESC Registry", "SwedeHF Registry")
 
 default_kable(tab1overall, caption = "Overall stats", scale_down = F)
 ```  
@@ -146,6 +142,10 @@ The main analysis is considered to be the one with all countries.
 
 ## Predictors of CRT use
 
+The association between CRT use (CRT compared to indication for CRT without CRT) and pre-specified clinical variables 
+was modelled using a logistic regression separately in the ESC registry and SwedeHF. 
+Fewer variables were selected for the ESC Registry model due to limited number of patients. 
+
 ### Missing data
 
 Missing data was imputed with multiple imputation (n = 10) using mice [@mice]. 
@@ -159,18 +159,6 @@ with the variance inflation factor in the full model in the overall population.
 => No action deemed necessary. 
 
 ```{r, child = "../src/predcrt.Rmd"}
-
-```
-
-\clearpage
-
-## Outcomes after CRT
-
-Time to first events were presented with 1-Kaplan-Meier curves with 
-the p-value from the log-rank test for all-cause mortality 
-and cumulative incidence curves with the p-value [@cr] treating death as a competing event for other outcomes. 
-
-```{r, child = "../src/km.Rmd"}
 
 ```
 

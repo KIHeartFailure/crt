@@ -45,7 +45,7 @@ propfunc2 <- function(data2) {
   )
   prop <- cbind(
     prop,
-    propfunc("nyha_cat", val = "II", "NYHA II", data2)
+    propfunc("nyha_cat", val = "I-II", "NYHA I-II", data2)
   )
   prop <- cbind(
     prop,
@@ -70,7 +70,7 @@ indcrtgroup <- propfunc2(data3 %>% filter(data == "crt" | crt == "Indication"))
 par(mar = c(5.7, 4.1, 0.5, 0.1))
 #  bottom, left, top and right
 b <- barplot(as.matrix(indcrtgroup),
-  beside = T, col = global_kicols[c(6, 1, 2)], ylim = c(0, 100),
+  beside = T, col = global_cols[c(7, 4, 1)], ylim = c(0, 100),
   ylab = "Percent",
   axes = FALSE,
   names.arg = rep(NA, 11),
@@ -78,10 +78,6 @@ b <- barplot(as.matrix(indcrtgroup),
 )
 axis(2, seq(0, 100, 10), las = 2)
 axis(1, b[2, ], names(indcrtgroup), las = 2, tick = F)
-
-# for (i in seq_along(names(crtgroup))){
-# lines(c(b[2, i] - 0.5, b[2, i] + 0.5), c(indcrtgroup["esc", i], indcrtgroup["esc", i]), lwd = 2)
-# }
 
 for (i in seq_along(names(indcrtgroup))) {
   points(c(b[2, i]), crtgroup["esc", i], pch = 8)
@@ -94,7 +90,7 @@ legend(
   x = 3, y = 90,
   legend = c("CRT Survey II", "ESC", "SwedeHF"),
   bty = "n",
-  fill = global_kicols[c(6, 1, 2)],
+  fill = global_cols[c(7, 4, 1)],
   border = NA
-) # , cex = 0.8)
+) 
 ```

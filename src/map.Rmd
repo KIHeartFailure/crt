@@ -102,8 +102,8 @@ ggplot() +
   ) +
   coord_map(xlim = c(-10, 35), ylim = c(35, 70)) +
   # coord_map() +
-  scale_color_manual(values = global_kicols[3:1]) +
-  scale_fill_manual(name = "GDP per capita", values = global_kicols[3:1], na.translate = FALSE) +
+  scale_color_manual(values = global_cols[c(1, 4, 7)]) +
+  scale_fill_manual(name = "GDP per capita", values = global_cols[c(1, 4, 7)], na.translate = FALSE) +
   # geom_point(data = crtblob %>% filter(totn < 10), aes(x = long, y = lat, size = `% CRT`), shape = 21, colour = "black", fill = "grey", stroke = 2) +
   # geom_point(data = crtblob %>% filter(totn >= 10), aes(x = long, y = lat, size = `% CRT`), shape = 21, colour = "black", fill = "black", stroke = 2) +
   geom_point(data = crtblob %>% filter(totn < 10), aes(x = long, y = lat, size = `% CRT`), shape = 10) +

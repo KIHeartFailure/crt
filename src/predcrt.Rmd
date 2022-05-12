@@ -1,4 +1,7 @@
+
 ```{r predcrt, cache=cacheon}
+
+# ESC
 
 ormod_esc <- with(impdata_esc, glm(formula(paste0("crt == 'CRT' ~ ", paste(modvars_esc, collapse = " + "))),
   family = binomial(link = "logit")
@@ -22,6 +25,41 @@ orforest_esc <- bind_cols(
   ))
 
 
+# crude
+for (i in seq_along(modvars_esc)) {
+  ormoduni_esc <- with(impdata_esc, glm(formula(paste0("crt == 'CRT' ~ ", modvars_esc[i])),
+    family = binomial(link = "logit")
+  ))
+
+  sormoduni_esc <- summary(pool(ormoduni_esc))
+
+  nval <- length(sormoduni_esc$term)
+
+  orforestuni_esctmp <- bind_cols(
+    Variable = as.character(sormoduni_esc$term[2:nval]),
+    logor = sormoduni_esc$estimate[2:nval],
+    lci = sormoduni_esc$estimate[2:nval] - global_z05 * sormoduni_esc$std.error[2:nval],
+    uci = sormoduni_esc$estimate[2:nval] + global_z05 * sormoduni_esc$std.error[2:nval],
+    p = fn(sormoduni_esc$p.value[2:nval], dig = 3, p = TRUE)
+  ) %>%
+    mutate(orcip = paste0(
+      fn(exp(logor), 1), " (",
+      fn(exp(lci), 1), "-",
+      fn(exp(uci), 1), "), ",
+      p
+    ))
+
+  if (i == 1) {
+    orforestuni_esc <<- orforestuni_esctmp
+  } else {
+    orforestuni_esc <<- bind_rows(orforestuni_esc, orforestuni_esctmp)
+  }
+}
+
+escall <- full_join(orforestuni_esc, orforest_esc, by = "Variable", suffix = c("_crude", "_adj"))
+
+# RS
+
 ormod_rs <- with(impdata_rs, glm(formula(paste0("crt == 'CRT' ~ ", paste(modvars_rs, collapse = " + "))),
   family = binomial(link = "logit")
 ))
@@ -43,10 +81,70 @@ orforest_rs <- bind_cols(
     p
   ))
 
-orforest <- full_join(orforest_rs,
-  orforest_esc,
+
+# crude
+for (i in seq_along(modvars_rs)) {
+  ormoduni_rs <- with(impdata_rs, glm(formula(paste0("crt == 'CRT' ~ ", modvars_rs[i])),
+    family = binomial(link = "logit")
+  ))
+
+  sormoduni_rs <- summary(pool(ormoduni_rs))
+
+  nval <- length(sormoduni_rs$term)
+
+  orforestuni_rstmp <- bind_cols(
+    Variable = as.character(sormoduni_rs$term[2:nval]),
+    logor = sormoduni_rs$estimate[2:nval],
+    lci = sormoduni_rs$estimate[2:nval] - global_z05 * sormoduni_rs$std.error[2:nval],
+    uci = sormoduni_rs$estimate[2:nval] + global_z05 * sormoduni_rs$std.error[2:nval],
+    p = fn(sormoduni_rs$p.value[2:nval], dig = 3, p = TRUE)
+  ) %>%
+    mutate(orcip = paste0(
+      fn(exp(logor), 1), " (",
+      fn(exp(lci), 1), "-",
+      fn(exp(uci), 1), "), ",
+      p
+    ))
+
+  if (i == 1) {
+    orforestuni_rs <<- orforestuni_rstmp
+  } else {
+    orforestuni_rs <<- bind_rows(orforestuni_rs, orforestuni_rstmp)
+  }
+}
+
+rsall <- full_join(orforestuni_rs, orforest_rs, by = "Variable", suffix = c("_crude", "_adj"))
+
+# RS only vars in esc
+
+ormod_rs_inesc <- with(impdata_rs, glm(formula(paste0("crt == 'CRT' ~ ", paste(modvars_esc, collapse = " + "))),
+  family = binomial(link = "logit")
+))
+
+sormod_rs_inesc <- summary(pool(ormod_rs_inesc))
+
+nval <- length(sormod_rs_inesc$term)
+orforest_rs_inesc <- bind_cols(
+  Variable = as.character(sormod_rs_inesc$term[2:nval]),
+  logor = sormod_rs_inesc$estimate[2:nval],
+  lci = sormod_rs_inesc$estimate[2:nval] - global_z05 * sormod_rs_inesc$std.error[2:nval],
+  uci = sormod_rs_inesc$estimate[2:nval] + global_z05 * sormod_rs_inesc$std.error[2:nval],
+  p = fn(sormod_rs_inesc$p.value[2:nval], dig = 3, p = TRUE)
+) %>%
+  mutate(orcip = paste0(
+    fn(exp(logor), 1), " (",
+    fn(exp(lci), 1), "-",
+    fn(exp(uci), 1), "), ",
+    p
+  ))
+
+orforest <- full_join(rsall, escall,
   by = "Variable",
   suffix = c("_rs", "_esc")
+)
+orforest <- full_join(orforest,
+  orforest_rs_inesc,
+  by = "Variable"
 ) %>%
   mutate(Variable = case_when(
     Variable == "age_cat>=75" ~ "Age >=75 vs <75",
@@ -66,11 +164,10 @@ orforest <- full_join(orforest_rs,
     Variable == "copdYes" ~ "COPD",
     Variable == "hypertensionYes" ~ "Hypertension",
     Variable == "hfhosp1yrYes" ~ "Previous HF hospitalization within 1 year",
-    Variable == "nyha_catIII-IV" ~ "NYHA III-IV vs II",
+    Variable == "nyha_catIII-IV" ~ "NYHA III-IV vs I-II",
     Variable == "ef_cat3930-39" ~ "EF 30-39 vs <30",
     Variable == "ntprobnp_cat>1500" ~ "NTproBNP >1500 vs <=1500",
     Variable == "bblYes" ~ "Betablockers",
-    Variable == "rasarniYes" ~ "RASi/ARNi",
     Variable == "rasarniYes" ~ "RASi/ARNi",
     Variable == "mraYes" ~ "MRA",
     Variable == "loopdiureticYes" ~ "Loop diuretic",
@@ -87,25 +184,26 @@ orforest <- full_join(orforest_rs,
     Variable == "Implanting.CRTYes" ~ "Hospital implanting CRT"
   ))
 
-orforestprint <- orforest %>% select(Variable, orcip_esc, orcip_rs)
-colnames(orforestprint) <- c("Variable", "ESC Registry", "SwedeHF Registry")
+orforestprint <- orforest %>% select(Variable, orcip_crude_esc, orcip_adj_esc, orcip_crude_rs, orcip_adj_rs, orcip)
+colnames(orforestprint) <- c("Variable", rep(c("Crude OR (95% CI)", "Adjusted OR (95% CI)"), 2), "Adjusted OR (95% CI)")
 write.xlsx(orforestprint, paste0("./output/tabs/or_", Sys.Date(), ".xlsx"), rowNames = FALSE)
 
 default_kable(orforestprint,
   font_size = 6,
   caption = "Predictors of CRT"
-)
+) %>%
+  add_header_above(c(" " = 1, "ESC Registry" = 2, "SwedeHF Registry" = 3))
 ```
 
 
-```{r predcrtforest, fig.cap="Predictors of crt", cache=cacheon, dependson="predcrt"}
+```{r predcrtforest, fig.cap="Predictors of crt (adjusted model)", cache=cacheon, dependson="predcrt"}
 
 # exp(min(as.numeric(orforest$lci_esc), na.rm = T))
 # exp(min(as.numeric(orforest$lci_rs), na.rm = T))
 # exp(max(as.numeric(orforest$uci_esc), na.rm = T))
 # exp(max(as.numeric(orforest$uci_rs), na.rm = T))
 
-xaxisvals <- c(0.1, 0.5, 1, 5, 10, 30)
+xaxisvals <- c(0.2, 0.5, 1, 5, 12.5)
 
 orforest <- orforest %>% arrange(n():1)
 
@@ -115,36 +213,46 @@ par(mar = c(4, 13, 0, 0) + 0.2)
 
 # esc
 
-plot(orforest$logor_esc, 1:nrow(orforest),
+plot(orforest$logor_adj_esc, 1:nrow(orforest),
   xlab = "",
   xlim = c(
-    log(0.09),
-    log(30) + 7
+    log(min(xaxisvals)),
+    log(max(xaxisvals)) + 7
   ),
   ylim = c(1, nrow(orforest) + 1),
   axes = FALSE,
   ylab = NA,
-  cex.lab = 1.1,
   main = NA,
-  cex = 1,
+  cex = 1.5,
   type = "p",
   pch = 22,
-  bg = global_kicols[1],
-  col = global_kicols[1]
+  bg = global_cols[7],
+  col = global_cols[7]
 )
 
-
 for (i in 1:nrow(orforest)) {
-  matplot(c(orforest$lci_esc[i], orforest$uci_esc[i]), c(i, i),
-    type = "l", add = TRUE, col = global_kicols[1], cex = 2
-  )
+  if (!is.na(orforest$lci_adj_esc[i])) {
+    lci <- max(orforest$lci_adj_esc[i], log(min(xaxisvals)))
+    uci <- min(orforest$uci_adj_esc[i], log(max(xaxisvals)))
+    matplot(c(lci, uci), c(i, i),
+      type = "l", add = TRUE, col = global_cols[7], cex = 2, lwd = 2
+    )
+    # if lci < min
+    if (orforest$lci_adj_esc[i] < log(min(xaxisvals))) {
+      arrows(orforest$logor_adj_esc[i], i, log(min(xaxisvals)), i, col = global_cols[7], code = 2, length = 0.07, lwd = 2)
+    }
+    # if uci < max
+    if (orforest$uci_adj_esc[i] > log(max(xaxisvals))) {
+      arrows(orforest$logor_adj_esc[i], i, log(max(xaxisvals)), i, col = global_cols[7], code = 2, length = 0.07, lwd = 2)
+    }
+  }
 }
 
 matplot(c(0, 0), c(-1, nrow(orforest) + 0.5), type = "l", lty = 3, add = TRUE, col = "black")
 
 axis(1,
   cex.axis = cextext, at = log(xaxisvals),
-  labels = xaxisvals
+  labels = xaxisvals, gap.axis = 0.000001
 )
 
 axis(2,
@@ -154,7 +262,7 @@ axis(2,
 )
 
 axis(1,
-  at = 0.01, cex.axis = cextext,
+  at = 0.15, cex.axis = cextext,
   labels = "CRT less likely  CRT more likely", line = 1, tick = FALSE
 )
 
@@ -167,7 +275,7 @@ axis(3,
 
 addx <- 6.5
 
-matplot(orforest$logor_rs + addx,
+matplot(orforest$logor_adj_rs + addx,
   1:nrow(orforest),
   xlab = "",
   xlim = c(
@@ -177,32 +285,44 @@ matplot(orforest$logor_rs + addx,
   ylim = c(1, nrow(orforest) + 1),
   axes = FALSE,
   ylab = NA,
-  cex.lab = 1.1,
   main = NA,
-  cex = 1,
+  cex = 1.5,
   type = "p",
   pch = 22,
-  bg = global_kicols[1],
-  col = global_kicols[1],
+  bg = global_cols[4],
+  col = global_cols[4],
   add = T
 )
 
 
+
 for (i in 1:nrow(orforest)) {
-  matplot(c(orforest$lci_rs[i] + addx, orforest$uci_rs[i] + addx), c(i, i),
-    type = "l", add = TRUE, col = global_kicols[1], cex = 2
-  )
+  if (!is.na(orforest$lci_adj_rs[i])) {
+    lci <- max(orforest$lci_adj_rs[i], log(min(xaxisvals)))
+    uci <- min(orforest$uci_adj_rs[i], log(max(xaxisvals)))
+    matplot(c(lci + addx, uci + addx), c(i, i),
+      type = "l", add = TRUE, col = global_cols[4], cex = 2, lwd = 2
+    )
+    # if lci < min
+    if (orforest$lci_adj_rs[i] < log(min(xaxisvals))) {
+      arrows(orforest$logor_adj_rs[i] + addx, i, log(min(xaxisvals)) + addx, i, col = global_cols[4], code = 2, length = 0.07, lwd = 2)
+    }
+    # if uci < max
+    if (orforest$uci_adj_rs[i] > log(max(xaxisvals))) {
+      arrows(orforest$logor_adj_rs[i] + addx, i, log(max(xaxisvals)) + addx, i, col = global_cols[4], code = 2, length = 0.07, lwd = 2)
+    }
+  }
 }
 
 matplot(c(0 + addx, 0 + addx), c(-1, nrow(orforest) + 0.5), type = "l", lty = 3, add = TRUE, col = "black")
 
 axis(1,
   cex.axis = cextext, at = log(xaxisvals) + addx,
-  labels = xaxisvals
+  labels = xaxisvals, gap.axis = 0.000001
 )
 
 axis(1,
-  at = 0.01 + addx, cex.axis = cextext,
+  at = 0.15 + addx, cex.axis = cextext,
   labels = "CRT less likely  CRT more likely", line = 1, tick = FALSE
 )
 
