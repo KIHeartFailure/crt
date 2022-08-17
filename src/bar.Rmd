@@ -2,6 +2,7 @@
 
 propfunc <- function(var, val = "Yes", name, data) {
   outprop <- data %>%
+    filter(!is.na(!!sym(var))) %>%
     group_by(data) %>%
     count(!!sym(var)) %>%
     mutate(prop = n / sum(n) * 100) %>%
@@ -45,7 +46,7 @@ propfunc2 <- function(data2) {
   )
   prop <- cbind(
     prop,
-    propfunc("nyha_cat", val = "I-II", "NYHA I-II", data2)
+    propfunc(var = "nyha_cat", val = "I-II", "NYHA I-II", data2)
   )
   prop <- cbind(
     prop,
@@ -92,5 +93,30 @@ legend(
   bty = "n",
   fill = global_cols[c(7, 4, 1)],
   border = NA
-) 
+)
+```
+
+```{r barcrtindcomb, cache=cacheon, fig.cap="Key baseline parameters for patients with CRT in CRT Survey II and CRT/indication for CRT in ESC and Swede HF", dependson="bar"}
+
+group <- propfunc2(data2 = data3 %>% filter(crt %in% c("CRT", "Indication")))
+
+par(mar = c(5.7, 4.1, 0.5, 0.1))
+#  bottom, left, top and right
+b <- barplot(as.matrix(group),
+  beside = T, col = global_cols[c(7, 4, 1)], ylim = c(0, 100),
+  ylab = "Percent",
+  axes = FALSE,
+  names.arg = rep(NA, 11),
+  border = NA
+)
+axis(2, seq(0, 100, 10), las = 2)
+axis(1, b[2, ], names(group), las = 2, tick = F)
+
+legend(
+  x = 3, y = 90,
+  legend = c("CRT Survey II", "ESC", "SwedeHF"),
+  bty = "n",
+  fill = global_cols[c(7, 4, 1)],
+  border = NA
+)
 ```
