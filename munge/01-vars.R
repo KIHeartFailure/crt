@@ -82,7 +82,6 @@ modvars_esc <- c(
   "sex",
 
   "famtype",
-  "smoking_cat",
   "bmi_cat",
 
   "ckd",
@@ -100,9 +99,11 @@ modvars_esc <- c(
   "mra",
   "loopdiuretic",
 
-  "bpsys_cat",
   "heartrate_cat",
-  "hospitaltype"
+  
+  "followuphfunit",
+  "hospitaltype", 
+  "Implanting.CRT"
 )
 
 modvars_rs <- c(
