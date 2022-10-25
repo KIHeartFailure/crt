@@ -62,6 +62,8 @@ tabvars <- c(
   "Implanting.CRT",
   "HFclinicavailablefollowup",
   "esc_hfpatstreated",
+  "num_sqPaceYear", 
+  "num_sqICDYear", 
 
   # "country",
   # "num_dmEthnic",
@@ -69,7 +71,7 @@ tabvars <- c(
   "scb_dispincome_cat2",
   "scb_education_cat",
   "scb_child",
-  "shf_followuphfunit",
+  "followuphfunit",
   "shf_followuplocation",
 
   "maggic_score"
@@ -139,7 +141,7 @@ modvars_rs <- c(
   "bpsys_cat",
   "heartrate_cat",
 
-  "shf_followuphfunit",
+  "followuphfunit",
   "shf_followuplocation_cat",
   "hospitaltype",
   "Implanting.CRT"

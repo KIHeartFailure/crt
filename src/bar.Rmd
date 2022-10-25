@@ -22,7 +22,7 @@ propfunc2 <- function(data2) {
   prop <- propfunc(var = "sex", val = "Female", name = "Female", data2)
   prop <- cbind(
     prop,
-    propfunc("age_cat", val = ">=75", "Age >=75yrs", data2)
+    propfunc("age_cat", val = ">=75", "Age \u226575yrs", data2)
   )
   prop <- cbind(
     prop,

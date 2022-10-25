@@ -53,7 +53,11 @@ esc <- left_join(
     sqHFCard,
     sqHFInMed,
     sqHFHFunit,
-    sqHFclinic
+    sqHFclinic, 
+    sqHFclinic, 
+    num_sqEPlab, 
+    num_sqPaceYear, 
+    num_sqICDYear
   ),
   by = c("CID" = "CentreID")
 )
@@ -367,10 +371,16 @@ data3 <- data3 %>%
     levels = 1:2, labels = c("Other", "University Hospital")
     ),
 
+    imcrtesc = case_when(is.na(num_sqEPlab) ~ NA_real_, 
+                         num_sqEPlab == 0 ~ 0, 
+                         TRUE ~ 1),
+    Implanting.CRT = coalesce(Implanting.CRT, imcrtesc), 
     Implanting.CRT = factor(Implanting.CRT,
       levels = 0:1,
       labels = c("No", "Yes")
     ),
+    
+    followuphfunit = coalesce(shf_followuphfunit, factor(sqHFclinic)), 
 
     esc_hfpatstreated = case_when(
       sqHFCard == "2" & sqHFInMed == "" & sqHFHFunit == "" ~ "Only cardiology wards",
