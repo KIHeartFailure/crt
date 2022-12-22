@@ -22,7 +22,7 @@ propfunc2 <- function(data2) {
   prop <- propfunc(var = "sex", val = "Female", name = "Female", data2)
   prop <- cbind(
     prop,
-    propfunc("age_cat", val = ">=75", "Age \u226575yrs", data2)
+    propfunc("age_cat", val = ">=75", "Age \u226575, years", data2)
   )
   prop <- cbind(
     prop,
@@ -38,7 +38,7 @@ propfunc2 <- function(data2) {
   )
   prop <- cbind(
     prop,
-    propfunc("ef_cat39", val = "<30", "EF <30%", data2)
+    propfunc("ef_cat39", val = "<30", "EF <30, %", data2)
   )
   prop <- cbind(
     prop,
@@ -50,7 +50,7 @@ propfunc2 <- function(data2) {
   )
   prop <- cbind(
     prop,
-    propfunc("rasarni", val = "Yes", "RASi/ARNi", data2)
+    propfunc("rasarni", val = "Yes", "RASi", data2)
   )
   prop <- cbind(
     prop,
@@ -63,12 +63,12 @@ propfunc2 <- function(data2) {
 }
 ```
 
-```{r barcrtind, cache=cacheon, fig.cap="Key baseline parameters for patients with CRT in CRT Survey II and indication for CRT in ESC and Swede HF. * are patients with CRT", dependson="bar"}
+```{r barcrtind, cache=cacheon, fig.cap="Key baseline parameters for patients with CRT in CRT Survey II and indication for CRT in ESC and Swede HF. * are patients with CRT", dependson="bar", fig.height=6, fig.width=8}
 
 crtgroup <- propfunc2(data3 %>% filter(crt == "CRT"))
 indcrtgroup <- propfunc2(data3 %>% filter(data == "crt" | crt == "Indication"))
 
-par(mar = c(5.7, 4.1, 0.5, 0.1))
+par(mar = c(6.7, 4.1, 0.5, 0.1))
 #  bottom, left, top and right
 b <- barplot(as.matrix(indcrtgroup),
   beside = T, col = global_cols[c(7, 4, 1)], ylim = c(0, 100),
@@ -88,19 +88,19 @@ for (i in seq_along(names(indcrtgroup))) {
 }
 
 legend(
-  x = 3, y = 90,
-  legend = c("CRT Survey II", "ESC", "SwedeHF"),
+  "topleft",
+  legend = c("ESC-CRT survey II", "ESC-HF-LT", "SwedeHF"),
   bty = "n",
   fill = global_cols[c(7, 4, 1)],
   border = NA
 )
 ```
 
-```{r barcrtindcomb, cache=cacheon, fig.cap="Key baseline parameters for patients with CRT in CRT Survey II and CRT/indication for CRT in ESC and Swede HF", dependson="bar"}
+```{r barcrtindcomb, cache=cacheon, fig.cap="Key baseline parameters for patients with CRT in CRT Survey II and CRT/indication for CRT in ESC and Swede HF", dependson="bar", fig.height=6, fig.width=8}
 
 group <- propfunc2(data2 = data3 %>% filter(crt %in% c("CRT", "Indication")))
 
-par(mar = c(5.7, 4.1, 0.5, 0.1))
+par(mar = c(6.7, 4.1, 0.5, 0.1))
 #  bottom, left, top and right
 b <- barplot(as.matrix(group),
   beside = T, col = global_cols[c(7, 4, 1)], ylim = c(0, 100),
@@ -113,8 +113,8 @@ axis(2, seq(0, 100, 10), las = 2)
 axis(1, b[2, ], names(group), las = 2, tick = F)
 
 legend(
-  x = 3, y = 90,
-  legend = c("CRT Survey II", "ESC", "SwedeHF"),
+  "topleft",
+  legend = c("ESC-CRT survey II", "ESC-HF-LT", "SwedeHF"),
   bty = "n",
   fill = global_cols[c(7, 4, 1)],
   border = NA
