@@ -186,9 +186,10 @@ orforest <- full_join(orforest,
 
 orforestprint <- orforest %>% select(Variable, orcip_crude_esc, orcip_adj_esc, orcip_crude_rs, orcip_adj_rs, orcip)
 orforestprint <- orforestprint %>%
-  mutate(Variable = str_replace_all(Variable, fixed("\u2265"), ">="), 
-         Variable = str_replace_all(Variable, fixed("\u2264"), "<="), 
-         )
+  mutate(
+    Variable = str_replace_all(Variable, fixed("\u2265"), ">="),
+    Variable = str_replace_all(Variable, fixed("\u2264"), "<="),
+  )
 colnames(orforestprint) <- c("Variable", rep(c("Crude OR (95% CI)", "Adjusted OR (95% CI)"), 2), "Adjusted OR (95% CI)")
 write.xlsx(orforestprint, paste0("./output/tabs/or_", Sys.Date(), ".xlsx"), rowNames = FALSE)
 
@@ -200,7 +201,7 @@ default_kable(orforestprint,
 ```
 
 
-```{r predcrtforest, fig.cap="Predictors of crt (adjusted model)", cache=cacheon, dependson="predcrt"}
+```{r predcrtforest, fig.cap="Predictors of crt (adjusted model)", cache=cacheon, dependson="predcrt", fig.width=9, fig.height=7}
 
 # exp(min(as.numeric(orforest$lci_esc), na.rm = T))
 # exp(min(as.numeric(orforest$lci_rs), na.rm = T))
@@ -209,19 +210,25 @@ default_kable(orforestprint,
 
 xaxisvals <- c(0.2, 0.5, 1, 5, 12.5)
 
-orforest <- orforest %>% arrange(n():1)
+orforest <- orforest %>%
+  arrange(n():1) %>%
+  mutate(
+    orci_adj_rs = gsub("\\,.*", "", orcip_adj_rs),
+    orci_adj_esc = gsub("\\,.*", "", orcip_adj_esc)
+  )
 
 cextext <- 0.8
 # c(bottom, left, top, right)
-par(mar = c(4, 13, 0, 0) + 0.2)
+par(mar = c(3, 21, 0, 0) + 0.2)
 
+addx <- 4.75
 # esc
 
 plot(orforest$logor_adj_esc, 1:nrow(orforest),
   xlab = "",
   xlim = c(
     log(min(xaxisvals)),
-    log(max(xaxisvals)) + 7
+    log(max(xaxisvals)) + addx
   ),
   ylim = c(1, nrow(orforest) + 1),
   axes = FALSE,
@@ -262,7 +269,25 @@ axis(1,
 axis(2,
   at = 1:nrow(orforest),
   labels = orforest$Variable,
-  cex.axis = cextext, tick = FALSE, las = 2, line = 12, hadj = 0
+  cex.axis = cextext, tick = FALSE, las = 2, line = 20, hadj = 0
+)
+
+axis(2,
+  at = 1:(nrow(orforest) + 1),
+  labels = c(orforest$orci_adj_esc, "ESC-HF-LT"),
+  cex.axis = cextext, tick = FALSE, las = 2, line = 5, hadj = 0.5
+)
+
+axis(2,
+  at = 1:(nrow(orforest) + 1),
+  labels = c(orforest$orci_adj_rs, "SwedeHF"),
+  cex.axis = cextext, tick = FALSE, las = 2, line = 0.5, hadj = 0.5
+)
+
+axis(2,
+  at = nrow(orforest) + 2,
+  labels = "Adjusted OR (95% CI)",
+  cex.axis = cextext, tick = FALSE, las = 2, line = mean(c(0.5, 5)), hadj = 0.5
 )
 
 axis(1,
@@ -277,14 +302,12 @@ axis(3,
 
 # rs
 
-addx <- 6.5
-
 matplot(orforest$logor_adj_rs + addx,
   1:nrow(orforest),
   xlab = "",
   xlim = c(
-    log(0.09) + addx,
-    log(30) + addx
+    log(min(xaxisvals)) + addx,
+    log(max(xaxisvals)) + addx
   ),
   ylim = c(1, nrow(orforest) + 1),
   axes = FALSE,
@@ -297,8 +320,6 @@ matplot(orforest$logor_adj_rs + addx,
   col = global_cols[4],
   add = T
 )
-
-
 
 for (i in 1:nrow(orforest)) {
   if (!is.na(orforest$lci_adj_rs[i])) {
