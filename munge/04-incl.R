@@ -1,3 +1,14 @@
+
+kolltimeframe <- data3 %>%
+  filter(data == "crt" |
+           data == "esc" & num_dmVisitdt >= ymd("2013-01-01") & num_dmVisitdt <= ymd("2016-01-01") |
+           data == "rs" & shf_indexyear %in% c(2013:2016)) %>%
+  mutate(lopnrall = coalesce(as.character(lopnr), as.character(patientid), cor_pt_patient_id))
+flowindtime <- c("Year 2013-2016", kolltimeframe %>% group_by(data, lopnrall) %>% slice(1) %>% ungroup %>% count(data) %>% pull(n))
+
+centresrs <- data3 %>% filter(data == "rs") %>% count(centrename) %>% count()
+centresrstime <- data3 %>% filter(data == "rs" & shf_indexyear %in% c(2013:2016)) %>% count(centrename) %>% count()
+
 flow <- c("Number of posts", data3 %>% count(data) %>% pull(n))
 
 data3 <- data3 %>%
@@ -56,3 +67,5 @@ flow <- rbind(flow, c(
 ))
 
 colnames(flow) <- c("Inclusion/Exclusion criteria", "CRT Survey II", "ESC Registry", "SwedeHF Registry")
+
+centresrstimecohort <- data3 %>% filter(data == "rs") %>% count(centrename) %>% count()
