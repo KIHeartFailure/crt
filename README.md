@@ -32,4 +32,4 @@ reports/Statistical_report_XX.Rmd
 
 ## Publication
 
-... 
+https://pubmed.ncbi.nlm.nih.gov/37076773/
